@@ -1,0 +1,29 @@
+# **Full Stack Dev Test**
+
+### **⏱️ Time Expectation**
+
+A skilled full stack developer should be able to complete this in from **a few hours to 1 day.** Using AI tools are allowed.
+
+# **🎯 Goal**
+
+Build a simple **text-to-speech web app** where a user can:
+
+1. Enter text in **English**.
+2. Select a target or multiple language(s) (at least 3–5 options).
+3. Translate the text into that language.
+4. Generate speech for the translated text.
+5. Play the audio in the browser.
+- The app must be **fully deployed** (we should be able to open a link in the browser and use it without setup).
+
+## **🛠️ Requirements**
+
+- Must use **Laravel**
+
+## **🆓 Bonus / Extra Features (optional, show off your skills)**
+
+- Option to **download the generated audio file**.
+- **Change voice settings** (e.g., male/female, pitch, speed, or different TTS voices).
+- Show a **history of past translations/speeches** stored in MySQL.
+- Clean, modern UI (Bootstrap/Tailwind).
+- Error handling (e.g., show a friendly message if an API fails).
+- Whatever feature you think would make the application better.

@@ -133,8 +133,9 @@ return [
     |
     */
 
-    'tts_provider' => env('TTS_PROVIDER', 'web'),
+    'tts_provider' => env('TTS_PROVIDER', 'elevenlabs'),
     'voicerss_api_key' => env('VOICERSS_API_KEY'),
+    'elevenlabs_api_key' => env('ELEVENLABS_API_KEY'),
 
     /*
     |--------------------------------------------------------------------------

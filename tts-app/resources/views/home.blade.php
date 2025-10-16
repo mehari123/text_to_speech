@@ -354,61 +354,108 @@ function translatorApp() {
         },
 
         speak(translation) {
-            // Use ResponsiveVoice (free TTS API) - more reliable than browser API
-            if (typeof responsiveVoice !== 'undefined') {
-                // Stop any ongoing speech
-                responsiveVoice.cancel();
-
-                // Get the appropriate voice for the language
-                const voiceName = this.getResponsiveVoice(translation.language.code);
-                
-                // Voice parameters
-                const parameters = {
-                    pitch: parseFloat(this.voiceSettings.pitch),
-                    rate: parseFloat(this.voiceSettings.speed),
-                    onstart: () => {
-                        showToast('🔊 Playing audio...', 'info');
-                        console.log('Speaking:', translation.translated_text.substring(0, 50) + '...');
-                    },
-                    onend: () => {
-                        console.log('Speech finished');
-                    },
-                    onerror: (error) => {
-                        console.error('Speech error:', error);
-                        // Fallback to browser TTS
-                        this.speakWithBrowserAPI(translation);
-                    }
-                };
-
-                // Speak the text
-                responsiveVoice.speak(translation.translated_text, voiceName, parameters);
-            } else {
-                // Fallback to browser's Speech Synthesis API
-                this.speakWithBrowserAPI(translation);
+            console.log('Attempting to speak:', translation.translated_text.substring(0, 50));
+            
+            // If audio URL is provided (server-generated audio), play it directly
+            if (translation.audio_url) {
+                console.log('Playing server-generated audio:', translation.audio_url);
+                this.playAudioFile(translation.audio_url);
+                return;
             }
+
+            // Otherwise, use browser TTS as fallback
+            console.log('No audio URL, using browser TTS');
+            this.speakWithBrowserAPI(translation);
+        },
+
+        playAudioFile(audioUrl) {
+            showToast('🔊 Playing audio...', 'info');
+            
+            const audio = new Audio(audioUrl);
+            
+            audio.onplay = () => {
+                console.log('Audio playback started');
+            };
+            
+            audio.onended = () => {
+                console.log('Audio playback finished');
+            };
+            
+            audio.onerror = (error) => {
+                console.error('Audio playback error:', error);
+                showToast('Audio playback failed', 'error');
+            };
+            
+            audio.play().catch(error => {
+                console.error('Failed to play audio:', error);
+                showToast('Failed to play audio', 'error');
+            });
         },
 
         speakWithBrowserAPI(translation) {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-
-                const utterance = new SpeechSynthesisUtterance(translation.translated_text);
-                utterance.lang = this.getLanguageCode(translation.language.code);
-                utterance.rate = parseFloat(this.voiceSettings.speed);
-                utterance.pitch = parseFloat(this.voiceSettings.pitch);
-
-                utterance.onstart = () => {
-                    showToast('🔊 Playing audio...', 'info');
-                };
-
-                utterance.onerror = (event) => {
-                    console.error('Browser TTS error:', event);
-                    showToast('Audio playback failed. Please try again.', 'error');
-                };
-
-                window.speechSynthesis.speak(utterance);
-            } else {
+            console.log('Using browser Speech Synthesis API');
+            
+            if (!('speechSynthesis' in window)) {
                 showToast('Text-to-speech not supported in your browser', 'error');
+                return;
+            }
+
+            // Cancel any ongoing speech
+            window.speechSynthesis.cancel();
+
+            // Create utterance
+            const text = translation.translated_text || translation;
+            const langCode = translation.language ? translation.language.code : 'en';
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = this.getLanguageCode(langCode);
+            utterance.rate = parseFloat(this.voiceSettings.speed);
+            utterance.pitch = parseFloat(this.voiceSettings.pitch);
+            utterance.volume = 1.0;
+
+            console.log('Speaking with browser API:', {
+                text: text.substring(0, 30) + '...',
+                lang: utterance.lang,
+                rate: utterance.rate,
+                pitch: utterance.pitch
+            });
+
+            utterance.onstart = () => {
+                console.log('Browser TTS started');
+                showToast('🔊 Playing audio...', 'info');
+            };
+
+            utterance.onend = () => {
+                console.log('Browser TTS finished');
+            };
+
+            utterance.onerror = (event) => {
+                console.error('Browser TTS error:', event);
+                showToast('Audio playback failed: ' + (event.error || 'Unknown error'), 'error');
+            };
+
+            // Load voices and speak
+            const voices = window.speechSynthesis.getVoices();
+            if (voices.length > 0) {
+                const voice = voices.find(v => v.lang.startsWith(langCode)) || voices[0];
+                utterance.voice = voice;
+                console.log('Using voice:', voice.name, voice.lang);
+            }
+
+            // Speak
+            window.speechSynthesis.speak(utterance);
+            
+            // Fallback if voices aren't loaded yet
+            if (voices.length === 0) {
+                console.log('Voices not loaded, waiting...');
+                window.speechSynthesis.onvoiceschanged = () => {
+                    const newVoices = window.speechSynthesis.getVoices();
+                    const voice = newVoices.find(v => v.lang.startsWith(langCode)) || newVoices[0];
+                    if (voice) {
+                        utterance.voice = voice;
+                        console.log('Loaded voice:', voice.name);
+                    }
+                };
             }
         },
 

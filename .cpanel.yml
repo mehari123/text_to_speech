@@ -1,0 +1,52 @@
+---
+deployment:
+  tasks:
+    # Set deployment path - CHANGE THIS to your actual cPanel public_html path
+    - export DEPLOYPATH=/home/username/public_html/
+    
+    # Navigate to the tts-app directory (since git repo is in root)
+    - export APPPATH=$DEPLOYPATH
+    
+    # Copy application files from tts-app subdirectory to deployment path
+    - echo "Copying application files..."
+    - /bin/cp -R tts-app/* $APPPATH
+    
+    # Copy .env.example if .env doesn't exist
+    - /bin/cp -n tts-app/.env.example $APPPATH/.env || true
+    
+    # Navigate to deployment directory
+    - cd $APPPATH
+    
+    # Install Composer dependencies (production only)
+    - echo "Installing Composer dependencies..."
+    - /usr/local/bin/ea-php83 /opt/cpanel/composer/bin/composer install --no-dev --optimize-autoloader --no-interaction
+    
+    # Set proper permissions for Laravel
+    - echo "Setting permissions..."
+    - chmod -R 755 $APPPATH/storage
+    - chmod -R 755 $APPPATH/bootstrap/cache
+    
+    # Create storage link if it doesn't exist
+    - /usr/local/bin/ea-php83 artisan storage:link || true
+    
+    # Clear and cache configuration
+    - echo "Caching configuration..."
+    - /usr/local/bin/ea-php83 artisan config:clear
+    - /usr/local/bin/ea-php83 artisan config:cache
+    - /usr/local/bin/ea-php83 artisan route:cache
+    - /usr/local/bin/ea-php83 artisan view:cache
+    
+    # Run database migrations (careful with this in production!)
+    # Uncomment the next line if you want auto-migrations on deploy
+    # - /usr/local/bin/ea-php83 artisan migrate --force
+    
+    # Build frontend assets (if Node.js is available)
+    # Note: You may need to build assets locally and commit the build folder
+    # - npm install
+    # - npm run build
+    
+    # Final permissions
+    - chmod -R 755 $APPPATH/public
+    
+    - echo "Deployment completed successfully!"
+
